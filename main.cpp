@@ -1,4 +1,6 @@
-#include <bits/stdc++.h>
+#include <iostream>
+#include <vector>
+#include <string>
 using namespace std;
 
 typedef unsigned long long ull;
@@ -23,19 +25,20 @@ bool getBit(const vector<ull>& v, int pos) {
 }
 
 void pull(int x) {
-    Node& node = tr[x];
-    node.size = 1;
-    if (node.left) node.size += tr[node.left].size;
-    if (node.right) node.size += tr[node.right].size;
+    tr[x].size = 1;
+    if (tr[x].left) tr[x].size += tr[tr[x].left].size;
+    if (tr[x].right) tr[x].size += tr[tr[x].right].size;
 
-    node.sub = node.bits;
-    if (node.left) {
-        const vector<ull>& v = tr[node.left].sub;
-        for (int i = 0; i < W; ++i) node.sub[i] |= v[i];
+    tr[x].sub = tr[x].bits;
+
+    if (tr[x].left) {
+        const vector<ull>& v = tr[tr[x].left].sub;
+        for (int i = 0; i < W; ++i) tr[x].sub[i] |= v[i];
     }
-    if (node.right) {
-        const vector<ull>& v = tr[node.right].sub;
-        for (int i = 0; i < W; ++i) node.sub[i] |= v[i];
+
+    if (tr[x].right) {
+        const vector<ull>& v = tr[tr[x].right].sub;
+        for (int i = 0; i < W; ++i) tr[x].sub[i] |= v[i];
     }
 }
 
@@ -90,9 +93,11 @@ int mergeTree(int a, int b) {
     while (tr[x].right) x = tr[x].right;
 
     splay(x);
+
     tr[x].right = b;
     tr[b].parent = x;
     pull(x);
+
     return x;
 }
 
@@ -105,7 +110,10 @@ void detach(int x) {
     if (l) tr[l].parent = 0;
     if (r) tr[r].parent = 0;
 
-    tr[x].left = tr[x].right = tr[x].parent = 0;
+    tr[x].left = 0;
+    tr[x].right = 0;
+    tr[x].parent = 0;
+
     pull(x);
 
     root = mergeTree(l, r);
@@ -124,6 +132,7 @@ void moveBottom(int x) {
 void replaceBitmap(int x, vector<ull>& b) {
     splay(x);
     root = x;
+
     tr[x].bits.swap(b);
     pull(x);
 }
@@ -133,6 +142,7 @@ void toggleCell(int x, int r, int c) {
 
     splay(x);
     root = x;
+
     tr[x].bits[pos >> 6] ^= 1ULL << (pos & 63);
     pull(x);
 }
@@ -240,19 +250,22 @@ int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    cin >> n >> k;
+    int q;
+    cin >> n >> k >> q;
 
     m = n * n;
-    W = (m + 63) >> 6;
+    W = (m + 63) / 64;
 
     tr.resize(k + 1);
 
-    for (int x = 1; x <= k; ++x) {
-        tr[x].id = x;
-        tr[x].left = tr[x].right = tr[x].parent = 0;
-        tr[x].size = 1;
-        tr[x].bits.assign(W, 0);
-        tr[x].sub.assign(W, 0);
+    for (int i = 1; i <= k; ++i) {
+        tr[i].id = i;
+        tr[i].left = 0;
+        tr[i].right = 0;
+        tr[i].parent = 0;
+        tr[i].size = 1;
+        tr[i].bits.assign(W, 0);
+        tr[i].sub.assign(W, 0);
 
         for (int r = 0; r < n; ++r) {
             string s;
@@ -260,7 +273,7 @@ int main() {
 
             for (int c = 0; c < n; ++c) {
                 if (s[c] == '#') {
-                    setBit(tr[x].bits, r * n + c, true);
+                    setBit(tr[i].bits, r * n + c, true);
                 }
             }
         }
@@ -269,12 +282,9 @@ int main() {
     vector<int> ids;
     ids.reserve(k);
 
-    for (int x = k; x >= 1; --x) ids.push_back(x);
+    for (int i = k; i >= 1; --i) ids.push_back(i);
 
     root = buildTree(ids, 0, k - 1, 0);
-
-    int q;
-    cin >> q;
 
     while (q--) {
         char op;
@@ -310,5 +320,6 @@ int main() {
     }
 
     printFinalView();
+
     return 0;
 }
